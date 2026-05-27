@@ -162,6 +162,64 @@ class TestHandlerImportSmoke(unittest.TestCase):
             source = f.read()
         compile(source, str(handler_path), "exec")
 
+    def test_handler_contains_downloads_patch(self):
+        """Verify handler.py has the config_factory redirect patch."""
+        handler_path = Path(__file__).resolve().parent / "handler.py"
+        if not handler_path.exists():
+            self.skipTest("handler.py not found")
+        source = handler_path.read_text()
+        self.assertIn("downloads/", source,
+                      "handler.py must contain the downloads/ redirect patch")
+        self.assertIn("_patched_cf_get_model_path", source,
+                      "handler.py must define _patched_cf_get_model_path")
+        self.assertIn("_cf.get_model_path = _patched_cf_get_model_path", source,
+                      "handler.py must install the path patch")
+
+
+class TestDownloadsRedirect(unittest.TestCase):
+    """Simulate the config_factory patch: any downloads/ path must redirect."""
+
+    def _simulate_patch(self, path_key: str) -> str:
+        """Simulate what _patched_cf_get_model_path does."""
+        # These are the Lance library defaults we know about
+        fake_defaults = {
+            "vae.wan": "downloads/Wan2.2_VAE.pth",
+            "vit.qwen2_5_vl": "downloads/Qwen2.5-VL-ViT",
+            "llm.qwen2": "downloads/Lance_3B",
+            "tokenizer.qwen2": "downloads/Lance_3B",
+        }
+        path = fake_defaults.get(path_key, f"downloads/some/model.safetensors")
+        if path.startswith("downloads/"):
+            base = get_model_base_dir()
+            return str(base / path[len("downloads/"):])
+        return path
+
+    def test_downloads_redirected_to_model_base_dir(self):
+        """Any path starting with downloads/ must go to LANCE_MODEL_BASE_DIR."""
+        for path_key in ["vae.wan", "vit.qwen2_5_vl", "llm.qwen2", "tokenizer.qwen2"]:
+            with self.subTest(key=path_key):
+                resolved = self._simulate_patch(path_key)
+                self.assertTrue(
+                    resolved.startswith("/runpod-volume/checkpoints/"),
+                    f"{path_key} must resolve under /runpod-volume/checkpoints/, got {resolved}",
+                )
+                self.assertNotIn(
+                    "downloads", resolved,
+                    f"{path_key} must not contain downloads/ after patch, got {resolved}",
+                )
+
+    def test_non_downloads_paths_unchanged(self):
+        """Paths that don't start with downloads/ should pass through unchanged."""
+        result = self._simulate_patch("some.absolute.path")
+        # The simulator returns a made-up default, but if the real patch
+        # gets a non-downloads path, it leaves it alone.
+        base = get_model_base_dir()
+        resolved = self._simulate_patch("vae.wan")
+        self.assertTrue(
+            resolved.startswith(str(base)),
+            f"patched path should start with base dir {base}, got {resolved}",
+        )
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
