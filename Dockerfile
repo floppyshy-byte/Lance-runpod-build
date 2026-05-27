@@ -42,6 +42,9 @@ RUN uv pip install torch==2.8.0 torchvision==0.23.0 torchaudio==2.8.0 \
 # Install Lance requirements
 RUN uv pip install -r requirements.txt
 
+# Install wheel first (flash-attn build needs it)
+RUN uv pip install wheel
+
 # Install flash-attn (needs build isolation disabled)
 RUN uv pip install flash-attn==2.8.3 --no-build-isolation
 
