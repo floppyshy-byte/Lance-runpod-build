@@ -162,6 +162,24 @@ def get_model_path(model_variant: str) -> Path:
     return get_model_base_dir() / variant_dir
 
 
+# Patch config_factory.get_model_path to redirect any "downloads/" default
+# to the actual model cache location, since the Lance library's
+# path_default.yaml uses relative "downloads/" base paths.
+import config.config_factory as _cf
+_original_cf_get_model_path = _cf.get_model_path
+
+def _patched_cf_get_model_path(path_key: str) -> str:
+    path = _original_cf_get_model_path(path_key)
+    if path and path.startswith("downloads/"):
+        resolved = str(get_model_base_dir() / path[len("downloads/"):])
+        print(f"[path-patch] {path_key}: {path} -> {resolved}", flush=True)
+        return resolved
+    return path
+
+_cf.get_model_path = _patched_cf_get_model_path
+_cf.get_model_path_config(reload=True)
+
+
 def create_request_json(
     task: str,
     prompt: str,
