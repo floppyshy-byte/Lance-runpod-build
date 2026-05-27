@@ -19,10 +19,18 @@ import runpod
 # Ensure /app is in path for Lance imports
 sys.path.insert(0, "/app")
 
-# Run setup first
+# Run setup first, capturing stdout for diagnostics
 from setup_models import setup_lance_models
+import io
 
-setup_lance_models()
+_setup_buf = io.StringIO()
+_setup_stdout = sys.stdout
+sys.stdout = _setup_buf
+try:
+    setup_lance_models()
+finally:
+    sys.stdout = _setup_stdout
+    _SETUP_LOGS = _setup_buf.getvalue()
 
 # Set CUDA allocator config
 os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True,max_split_size_mb:128")
@@ -742,7 +750,7 @@ def handler(event):
 
     except Exception as exc:
         print(traceback.format_exc(), flush=True)
-        return {"error": str(exc), "traceback": traceback.format_exc()}
+        return {"error": str(exc), "traceback": traceback.format_exc(), "setup_logs": _SETUP_LOGS}
 
 
 if __name__ == "__main__":
