@@ -8,7 +8,17 @@ on:
   workflow_dispatch:
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run path resolution tests
+        run: python3 test_handler.py
+
   build:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
