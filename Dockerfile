@@ -25,7 +25,7 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 
 WORKDIR /app
 
-ARG LANCE_COMMIT=main
+ARG LANCE_COMMIT=df23c7438b9a71a6b9d335e09ddf7cfeff1f1a1d
 RUN git clone https://github.com/bytedance/Lance.git . \
     && git checkout ${LANCE_COMMIT}
 
