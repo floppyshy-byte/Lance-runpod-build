@@ -315,8 +315,11 @@ class LancePipeline:
                 raise RuntimeError(f"GPU {self.device} unavailable. Detected {torch.cuda.device_count()} GPU(s).")
             torch.cuda.set_device(self.device)
 
+            vit_path = str(get_model_base_dir() / "Qwen2.5-VL-ViT")
+
             model_args = ModelArguments(
                 model_path=model_path,
+                vit_path=vit_path,
                 vit_type=DEFAULT_VIT_TYPE,
                 llm_qk_norm=True,
                 llm_qk_norm_und=True,
