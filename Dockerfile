@@ -31,6 +31,10 @@ RUN git clone https://github.com/bytedance/Lance.git . \
 
 RUN rm -rf .git
 
+# Create venv (uv pip install requires one by default)
+RUN uv venv --python python3.11
+ENV PATH="/app/.venv/bin:${PATH}"
+
 # Install PyTorch with CUDA 12.6
 RUN uv pip install torch==2.8.0 torchvision==0.23.0 torchaudio==2.8.0 \
     --index-url https://download.pytorch.org/whl/cu126
