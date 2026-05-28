@@ -23,11 +23,18 @@ src = src.replace(
 # Match from 'def apply_rotary_pos_emb_flashatt' to the next class/def/@/EOF.
 pat = r"(def apply_rotary_pos_emb_flashatt\([^)]+\)[^:]*:).*?(?=\nclass |\ndef |\n@|\Z)"
 replacement = r"""\1
-    # Use full-dimension cos/sin directly (don't chunk).
+    # Log shapes for debugging, then apply broadcasting-safe rotary.
+    # The original flash-attn apply_rotary_emb handles complex broadcasting
+    # that we need to match. Log first so we can see what's mismatched.
+    import sys
+    print(f'[rotary-debug] q={q.shape} k={k.shape} cos={cos.shape} sin={sin.shape}',
+          file=sys.stderr, flush=True)
+
     # Standard rotary: x_rot = x*cos + rotate_half(x)*sin
     def _rotate_half(x):
         d = x.shape[-1]
         return torch.cat((-x[..., d // 2 :], x[..., : d // 2]), dim=-1)
+
     q_embed = (q.float() * cos + _rotate_half(q.float()) * sin).type_as(q)
     k_embed = (k.float() * cos + _rotate_half(k.float()) * sin).type_as(k)
     return q_embed, k_embed"""
