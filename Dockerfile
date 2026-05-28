@@ -9,7 +9,7 @@
 # ---------------------------------------------------------------------------
 # Stage 1: Builder — compile Python deps
 # ---------------------------------------------------------------------------
-FROM nvidia/cuda:13.0.3-devel-ubuntu22.04 AS builder
+FROM nvidia/cuda:12.6.0-devel-ubuntu22.04 AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
@@ -35,9 +35,9 @@ RUN rm -rf .git
 RUN uv venv --python python3.11
 ENV PATH="/app/.venv/bin:${PATH}"
 
-# Install PyTorch with CUDA 13.0
-RUN uv pip install torch==2.11.0 torchvision==0.24.1 torchaudio==2.11.0 \
-    --index-url https://download.pytorch.org/whl/cu130
+# Install PyTorch with CUDA 12.6
+RUN uv pip install torch==2.8.0 torchvision==0.23.0 torchaudio==2.8.0 \
+    --index-url https://download.pytorch.org/whl/cu126
 
 # Install Lance requirements
 RUN uv pip install -r requirements.txt
@@ -54,7 +54,7 @@ RUN uv pip install runpod
 # ---------------------------------------------------------------------------
 # Stage 2: Runtime — lean image
 # ---------------------------------------------------------------------------
-FROM nvidia/cuda:13.0.3-runtime-ubuntu22.04
+FROM nvidia/cuda:12.6.0-runtime-ubuntu22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
