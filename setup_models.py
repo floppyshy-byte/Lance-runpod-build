@@ -147,6 +147,18 @@ def setup_lance_models() -> None:
     else:
         print("\n[Setup] All model assets present.")
 
+    # Lance_3B_Video in the HF repo lacks llm_config.json — borrow from Lance_3B.
+    video_dir = checkpoint_dir / "Lance_3B_Video"
+    image_dir = checkpoint_dir / "Lance_3B"
+    if video_dir.exists() and image_dir.exists():
+        for cfg_name in ("llm_config.json", "generation_config.json",
+                         "vocab.json", "merges.txt", "tokenizer.json"):
+            video_cfg = video_dir / cfg_name
+            image_cfg = image_dir / cfg_name
+            if not video_cfg.exists() and image_cfg.exists():
+                video_cfg.symlink_to(image_cfg)
+                print(f"[Setup] LINKED {cfg_name} -> {image_cfg} (video model borrowed from image)")
+
     print("=" * 60)
 
 
