@@ -68,6 +68,13 @@ def setup_lance_models() -> None:
     checkpoint_dir = Path(os.environ.get("LANCE_MODEL_BASE_DIR", "/runpod-volume/checkpoints"))
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
+    # Symlink /app/downloads -> checkpoint_dir so the Lance library's hardcoded
+    # "downloads/" relative paths resolve to the model cache
+    downloads_link = Path("/app/downloads")
+    if not downloads_link.exists():
+        downloads_link.symlink_to(checkpoint_dir)
+        print(f"[Setup] Created symlink: /app/downloads -> {checkpoint_dir}")
+
     repo_id = os.environ.get("LANCE_MODEL_REPO", "bytedance-research/Lance")
 
     print(f"[Setup] LANCE_MODEL_BASE_DIR = {checkpoint_dir}")

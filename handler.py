@@ -55,27 +55,6 @@ from modeling.lance import Lance, LanceConfig, Qwen2ForCausalLM
 from modeling.qwen2 import Qwen2Tokenizer
 from modeling.qwen2.modeling_qwen2 import Qwen2Config
 from modeling.vae.wan.model import WanVideoVAE
-
-# Monkey-patch flash-attn's Triton rotary embedding with a pure-PyTorch
-# implementation. The Triton JIT crashes on CUDA 13.0 drivers (segfault in
-# triton/compiler/code_generator.py::ast_to_ttir) when the Docker image is
-# built for CUDA 12.6 but the GPU runs CUDA 13.0.
-import flash_attn.layers.rotary as _fa_rotary
-
-def _safe_apply_rotary_emb(x, cos, sin, interleaved=False, inplace=False,
-                           seqlen_offsets=0, cu_seqlens=None, max_seqlen=None):
-    """Pure-PyTorch rotary embedding — same signature as flash-attn's version."""
-    import torch as _torch
-    if interleaved:
-        # Convert interleaved to non-interleaved format
-        x_reshaped = _torch.stack((-x[..., 1::2], x[..., ::2]), dim=-1).reshape_as(x)
-    else:
-        x1, x2 = x.chunk(2, dim=-1)
-        x_reshaped = _torch.cat((-x2, x1), dim=-1)
-    return ((x * cos) + (x_reshaped * sin)).to(x.dtype)
-
-_fa_rotary.apply_rotary_emb = _safe_apply_rotary_emb
-
 from modeling.vit.qwen2_5_vl_vit import Qwen2_5_VisionTransformerPretrainedModel
 
 # ---------------------------------------------------------------------------
