@@ -9,7 +9,7 @@
 # ---------------------------------------------------------------------------
 # Stage 1: Builder — compile Python deps
 # ---------------------------------------------------------------------------
-FROM nvidia/cuda:12.6.0-devel-ubuntu22.04 AS builder
+FROM nvidia/cuda:13.0.3-devel-ubuntu22.04 AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
@@ -35,9 +35,9 @@ RUN rm -rf .git
 RUN uv venv --python python3.11
 ENV PATH="/app/.venv/bin:${PATH}"
 
-# Install PyTorch with CUDA 12.6
+# Install PyTorch with CUDA 13.0
 RUN uv pip install torch==2.8.0 torchvision==0.23.0 torchaudio==2.8.0 \
-    --index-url https://download.pytorch.org/whl/cu126
+    --index-url https://download.pytorch.org/whl/cu130
 
 # Install Lance requirements
 RUN uv pip install -r requirements.txt
@@ -54,7 +54,7 @@ RUN uv pip install runpod
 # ---------------------------------------------------------------------------
 # Stage 2: Runtime — lean image
 # ---------------------------------------------------------------------------
-FROM nvidia/cuda:12.6.0-runtime-ubuntu22.04
+FROM nvidia/cuda:13.0.3-runtime-ubuntu22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
@@ -81,6 +81,7 @@ ENV TRANSFORMERS_OFFLINE=1
 ENV PYTHONFAULTHANDLER=1
 ENV CUDA_VISIBLE_DEVICES=0
 ENV PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True,max_split_size_mb:128"
+ENV TORCH_COMPILE_DISABLE=1
 
 # Copy setup helper and handler LAST so code changes don't invalidate dep layers.
 COPY setup_models.py /app/setup_models.py
