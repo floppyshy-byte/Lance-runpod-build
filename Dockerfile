@@ -31,37 +31,8 @@ RUN git clone https://github.com/bytedance/Lance.git . \
 
 RUN rm -rf .git
 
-# Patch Lance ViT to use pure-PyTorch rotary embedding instead of flash-attn's
-# Triton implementation, which segfaults when the Docker image is built for
-# CUDA 12.6 but the GPU runs CUDA 12.8+ / 13.0 drivers (triton/compiler crash).
-RUN python3 -c "
-vit_path = 'modeling/vit/qwen2_5_vl_vit.py'
-with open(vit_path) as f:
-    src = f.read()
-
-# Remove the flash-attn import (the try/except sets apply_rotary_emb = None on failure)
-src = src.replace(
-    'from flash_attn.layers.rotary import apply_rotary_emb',
-    'apply_rotary_emb = None  # flash-attn patched out (Triton segfault on mismatch CUDA)'
-)
-
-# Replace the apply_rotary_pos_emb_flashatt function with pure-PyTorch version.
-# Use the function signature line to find and replace the whole body.
-import re
-pat = r'(def apply_rotary_pos_emb_flashatt\([^)]+\)[^:]*:).*?(?=\nclass |\ndef |\n@|\Z)'
-replacement = r'''\1
-    cos_half = cos.chunk(2, dim=-1)[0].contiguous()
-    sin_half = sin.chunk(2, dim=-1)[0].contiguous()
-    # Pure-PyTorch rotary: rotates last half of dims
-    q_embed = (q.float() * cos_half + torch.cat((-q.float()[..., q.shape[-1]//2:], q.float()[..., :q.shape[-1]//2]), dim=-1) * sin_half).type_as(q)
-    k_embed = (k.float() * cos_half + torch.cat((-k.float()[..., k.shape[-1]//2:], k.float()[..., :k.shape[-1]//2]), dim=-1) * sin_half).type_as(k)
-    return q_embed, k_embed'''
-src = re.sub(pat, replacement, src, flags=re.DOTALL)
-
-with open(vit_path, 'w') as f:
-    f.write(src)
-print('Patched Lance ViT rotary embedding to pure-PyTorch')
-"
+COPY patch_rotary.py /tmp/patch_rotary.py
+RUN python3 /tmp/patch_rotary.py && rm /tmp/patch_rotary.py
 
 # Create venv (uv pip install requires one by default)
 RUN uv venv --python python3.11
