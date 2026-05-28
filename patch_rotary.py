@@ -25,22 +25,25 @@ pat = r"(def apply_rotary_pos_emb_flashatt\([^)]+\)[^:]*:).*?(?=\nclass |\ndef |
 replacement = r"""\1
     cos_half = cos.chunk(2, dim=-1)[0].contiguous()
     sin_half = sin.chunk(2, dim=-1)[0].contiguous()
-    # Pure-PyTorch rotary: rotates last half of dims
+    # Expand half-dim cos/sin to full dim for element-wise multiplication
+    cos_full = torch.repeat_interleave(cos_half, 2, dim=-1)
+    sin_full = torch.repeat_interleave(sin_half, 2, dim=-1)
+    # Pure-PyTorch rotary: x_rot = x*cos + rotate_half(x)*sin
     q_embed = (
-        q.float() * cos_half
+        q.float() * cos_full
         + torch.cat(
             (-q.float()[..., q.shape[-1] // 2 :], q.float()[..., : q.shape[-1] // 2]),
             dim=-1,
         )
-        * sin_half
+        * sin_full
     ).type_as(q)
     k_embed = (
-        k.float() * cos_half
+        k.float() * cos_full
         + torch.cat(
             (-k.float()[..., k.shape[-1] // 2 :], k.float()[..., : k.shape[-1] // 2]),
             dim=-1,
         )
-        * sin_half
+        * sin_full
     ).type_as(k)
     return q_embed, k_embed"""
 
