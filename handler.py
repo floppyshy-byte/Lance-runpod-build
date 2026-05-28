@@ -699,6 +699,15 @@ def handler(event):
     try:
         input_data = event.get("input", {})
 
+        # Log GPU memory state for OOM debugging
+        if torch.cuda.is_available():
+            free, total = torch.cuda.mem_get_info()
+            used_gb = (total - free) / (1024**3)
+            total_gb = total / (1024**3)
+            print(f"[gpu-mem] Before job: {used_gb:.2f} GiB used / {total_gb:.2f} GiB total, {free / (1024**3):.2f} GiB free", flush=True)
+            if used_gb > total_gb * 0.5:
+                print(torch.cuda.memory_summary(), flush=True)
+
         task = input_data.get("task", "t2v")
         prompt = input_data.get("prompt", "")
         system_prompt = input_data.get("system_prompt")
