@@ -36,7 +36,7 @@ RUN uv venv --python python3.11
 ENV PATH="/app/.venv/bin:${PATH}"
 
 # Install PyTorch with CUDA 13.0
-RUN uv pip install torch==2.8.0 torchvision==0.23.0 torchaudio==2.8.0 \
+RUN uv pip install torch==2.11.0 torchvision==0.24.1 torchaudio==2.11.0 \
     --index-url https://download.pytorch.org/whl/cu130
 
 # Install Lance requirements
